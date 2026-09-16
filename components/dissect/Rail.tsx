@@ -40,12 +40,11 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
   const [earned, setEarned] = useState<Record<string, number>>({});
   const [readyMap, setReadyMap] = useState<Record<string, boolean>>({});
   const [gateBlocked, setGateBlocked] = useState<string | null>(null);
-  // On mobile the rail is display:none but it would still mount all 4 WebGL panels
-  // (the "This page cannot be loaded" phone crash). Disable rail entirely on
-  // mobile — the mobile-only DOM is the source of truth there.
-  const [railEnabled, setRailEnabled] = useState(true);
+  // On mobile the rail must never mount at all (WebGL contexts + pinned scroll-jack crash phones).
+  // Start as `null` — server and first client render both see no rail. After mount, matchMedia
+  // decides whether to mount the rail (desktop) or leave it null (mobile).
+  const [railEnabled, setRailEnabled] = useState<boolean | null>(null);
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const mql = window.matchMedia("(min-width: 768px)");
     const up = () => setRailEnabled(mql.matches);
     up();
@@ -73,6 +72,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
   const clampedProgress = useRef(0);
 
   useEffect(() => {
+    if (!railEnabled) return; // skip entirely on mobile
     if (!wrapRef.current || !railRef.current) return;
     const rail = railRef.current;
     const travel = rail.scrollWidth - window.innerWidth;
@@ -120,9 +120,8 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     return () => { st.kill(); gsap.ticker.remove(ticker); };
   }, [panels, readyMap, railEnabled]);
 
-  // On mobile, don't render rail DOM at all — saves 4 WebGL contexts and 800vh of scroll-jacking
-  if (!railEnabled) return null;
-
+  // null → not yet decided (or mobile) — render nothing. True → render desktop rail.
+  if (railEnabled !== true) return null;
   const totalEarned = Object.values(earned).reduce((a, b) => a + b, 0);
 
   return (

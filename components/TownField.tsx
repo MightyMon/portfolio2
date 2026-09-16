@@ -175,13 +175,11 @@ function Rig({ frozen = false }: { frozen?: boolean }) {
 
 export default function TownField() {
   const [opacity, setOpacity] = useState(1);
-  const [isMobile, setIsMobile] = useState(false);
+  // Start unset → render nothing (matches SSR); after mount, mount only on desktop.
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsMobile(window.innerWidth < 768);
-    }
+    setIsMobile(window.innerWidth < 768);
     const onScroll = () => {
-      // dim the field as the visitor leaves hero
       const v = Math.max(0.1, 1 - window.scrollY / (window.innerHeight * 0.9));
       setOpacity(v);
     };
@@ -190,8 +188,9 @@ export default function TownField() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Don't unmount Canvas — React + R3F teardown is fragile on mobile and triggers
-  // removeChild hydration errors. Hide + pause rendering instead: keeps tree intact.
+  // No Canvas renders on SSR — avoids R3F hydration mismatch.
+  if (isMobile === null || isMobile) return null;
+
   return (
     <div
       style={{
@@ -201,16 +200,14 @@ export default function TownField() {
         opacity,
         transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1)",
         pointerEvents: "none",
-        visibility: isMobile ? "hidden" : "visible",
       }}
     >
       <Canvas
         dpr={[1, 2]}
         camera={{ position: [0, 0, 26], fov: 45, near: 0.1, far: 200 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        frameloop={isMobile ? "never" : "always"}
       >
-        <Rig frozen={isMobile} />
+        <Rig />
       </Canvas>
     </div>
   );
