@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function gauss(x: number, mu = 0, s = 1, a = 1) { return a * Math.exp(-((x - mu) ** 2) / (2 * s * s)); }
 
@@ -49,8 +49,9 @@ function Scene({ progress }: { progress: number }) {
   );
 }
 
-export default function Breathalyzer({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function Breathalyzer({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [exhales, setExhales] = useState(0);
+  useEffect(() => { onReady?.(exhales > 0); }, [exhales, onReady]);
   return (
     <div
       className="relative h-full w-full"

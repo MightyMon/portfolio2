@@ -106,7 +106,8 @@ function CameraRig({ progress, pointer }: { progress: number; pointer: React.Ref
   return null;
 }
 
-export default function Exosky({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function Exosky({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
+  useEffect(() => { onReady?.(lockedOnce.current); });
   const lockedOnce = useRef(false);
   useEffect(() => { if (progress >= 0.7 && !lockedOnce.current) { lockedOnce.current = true; commit?.(1); } }, [progress, commit]);
   const stars = useMemo(makeStars, []);

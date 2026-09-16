@@ -42,7 +42,7 @@ export default function DissectGallery() {
     desc: "",
     axis: o.axis,
     verb: "",
-    component: P[String(o.id)] as React.ComponentType<{ progress: number; commit?: (earned: number) => void }>,
+    component: P[String(o.id)] as React.ComponentType<{ progress: number; commit?: (earned: number) => void; onReady?: (r: boolean) => void }>,
   }));
   return <Rail panels={panels} />;
 }

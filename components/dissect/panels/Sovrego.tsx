@@ -20,8 +20,9 @@ allow {
   audit_logged[input.principal]
 }`;
 
-export default function Sovrego({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function Sovrego({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [compiled, setCompiled] = useState(0);
+  useEffect(() => { onReady?.(compiled > 0); }, [compiled, onReady]);
   const doCompile = () => {
     if (progress > 0.7 && commit) {
       setCompiled((c) => c + 1);

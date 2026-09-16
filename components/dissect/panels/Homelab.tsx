@@ -11,8 +11,9 @@ const TRAYS: Tray[] = [
   { id: "net",     label: "net",          spec: "10g sfp+",        service: "wireguard gateway" },
 ];
 
-export default function Homelab({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function Homelab({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [openCount, setOpenCount] = useState(0);
+  useEffect(() => { onReady?.(openCount >= 4); }, [openCount, onReady]);
   const dragState = useRef<{ tray: string | null; startX: number; trayStartX: number }>({ tray: null, startX: 0, trayStartX: 0 });
   const trayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const openSet = useRef<Set<string>>(new Set());

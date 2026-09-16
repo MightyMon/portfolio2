@@ -65,7 +65,8 @@ function Orbiter({ progress }: { progress: number }) {
   return null;
 }
 
-export default function NetworkAnalyzer({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function NetworkAnalyzer({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
+  useEffect(() => { onReady?.(traced.current); });
   const traced = useRef(false);
   useEffect(() => { if (progress > 0.7 && !traced.current) { traced.current = true; commit?.(1); } }, [progress, commit]);
   return (

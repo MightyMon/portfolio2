@@ -5,7 +5,8 @@ import gsap from "gsap";
 
 const STATIONS = ["card", "rfid antenna", "rp2040", "relay", "strike"];
 
-export default function AccessControl({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+export default function AccessControl({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
+  useEffect(() => { onReady?.(scansDone.current); });
   const scansDone = useRef(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const lastIdx = useRef(-1);
