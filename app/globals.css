@@ -210,6 +210,16 @@ html, body {
   h1.display-c { font-size: clamp(2.8rem, 16vw, 4.5rem) !important; }
 }
 
+/* mobile vs desktop route */
+@media (max-width: 767px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
+}
+@media (min-width: 768px) {
+  .desktop-only { display: block !important; }
+  .mobile-only { display: none !important; }
+}
+
 /* grain */
 body::after {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .05;

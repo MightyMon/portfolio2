@@ -174,7 +174,11 @@ function Rig() {
 
 export default function TownField() {
   const [opacity, setOpacity] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsMobile(window.innerWidth < 768);
+    }
     const onScroll = () => {
       // dim the field as the visitor leaves hero
       const v = Math.max(0.1, 1 - window.scrollY / (window.innerHeight * 0.9));
@@ -184,6 +188,30 @@ export default function TownField() {
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Mobile fallback: instead of WebGL, render a static packet-field grid + label
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          opacity,
+          transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+          pointerEvents: "none",
+          background: "radial-gradient(ellipse at 50% 45%, rgba(45,212,191,0.22), transparent 60%)",
+        }}
+      >
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="mono-xs opacity-25" style={{ letterSpacing: "0.3em" }}>
+            · packets in flight ·
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{

@@ -40,6 +40,18 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
   const [earned, setEarned] = useState<Record<string, number>>({});
   const [readyMap, setReadyMap] = useState<Record<string, boolean>>({});
   const [gateBlocked, setGateBlocked] = useState<string | null>(null);
+  // On mobile the rail is display:none but it would still mount all 4 WebGL panels
+  // (the "This page cannot be loaded" phone crash). Disable rail entirely on
+  // mobile — the mobile-only DOM is the source of truth there.
+  const [railEnabled, setRailEnabled] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 768px)");
+    const up = () => setRailEnabled(mql.matches);
+    up();
+    mql.addEventListener("change", up);
+    return () => mql.removeEventListener("change", up);
+  }, []);
 
   const commit = (panelId: string, earnedCount: number) => {
     setEarned((e) => ({ ...e, [panelId]: earnedCount }));
@@ -104,7 +116,10 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     };
     const ticker = gsap.ticker.add(raf);
     return () => { st.kill(); gsap.ticker.remove(ticker); };
-  }, [panels, readyMap]);
+  }, [panels, readyMap, railEnabled]);
+
+  // On mobile, don't render rail DOM at all — saves 4 WebGL contexts and 800vh of scroll-jacking
+  if (!railEnabled) return null;
 
   const totalEarned = Object.values(earned).reduce((a, b) => a + b, 0);
 
