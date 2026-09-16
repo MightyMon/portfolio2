@@ -17,7 +17,7 @@ export default function Respond() {
 
   return (
     <section ref={root} className="stage invert-stage" data-stage="RESPOND" id="respond">
-      <div className="stage-label"><span>04</span><span>/</span><span>respond</span><span className="hr" /><span className="opacity-50">the loop as method</span></div>
+      <div className="stage-label"><span>02</span><span>/</span><span>respond</span><span className="hr" /><span className="opacity-50">the loop as method</span></div>
 
       <div className="mt-14 grid gap-16 md:grid-cols-[1fr_360px] items-start">
         <div>
@@ -30,8 +30,8 @@ export default function Respond() {
             <li>— close the loop.</li>
             <li className="pt-4 text-ink/70">
               icpc 2023 taught me timeboxed reps. karate taught me discipline. speaking at
-              safer internet day taught me public disclosure. systems that watch themselves are
-              the only ones worth shipping.
+              public events taught me disclosure. systems that watch themselves are the only
+              ones worth shipping.
             </li>
           </ul>
         </div>

@@ -60,7 +60,7 @@ export default function Breathalyzer({ progress }: { progress: number }) {
         <Scene progress={progress} />
       </Canvas>
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
-        {progress < 1 ? `pulling back… ${Math.round(progress * 100)}%` : "context revealed ✓"}
+        {progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged" : "context revealed ✓"}
       </div>
     </div>
   );

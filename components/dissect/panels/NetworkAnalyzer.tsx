@@ -77,7 +77,7 @@ export default function NetworkAnalyzer({ progress }: { progress: number }) {
         <Topology />
       </Canvas>
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
-        {progress < 1 ? `orbiting · ${Math.round(progress * 360)}°` : "topology mapped ✓"}
+        {progress < 0.3 ? `orbiting · ${Math.round(progress * 360)}°` : progress < 1 ? `orbiting · ${Math.round(progress * 360)}°` : "topology mapped ✓"}
       </div>
     </div>
   );

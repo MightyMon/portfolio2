@@ -33,7 +33,7 @@ export default function Detect() {
 
   return (
     <section ref={root} className="stage" data-stage="DETECT" id="detect">
-      <div className="stage-label"><span>02</span><span>/</span><span>detect</span><span className="hr" /><span className="opacity-50">offense · defense</span></div>
+      <div className="stage-label"><span>03</span><span>/</span><span>detect</span><span className="hr" /><span className="opacity-50">offense · defense</span></div>
 
       <div className="relative mt-14" style={{ height: "58vh", minHeight: 420 }}>
         {/* LEFT — detection */}

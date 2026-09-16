@@ -69,13 +69,42 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
         ))}
       </div>
 
-      {/* rail HUD */}
+      {/* rail HUD — bottom center */}
       <div className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 mono-xs opacity-70">
-        03 / dissect — {String(panelIndex + 1).padStart(2, "0")} / {String(panels.length).padStart(2, "0")} · {active?.name} · {Math.round(panelProgress * 100)}%
+        04 / dissect — {String(panelIndex + 1).padStart(2, "0")} / {String(panels.length).padStart(2, "0")} · {active?.name} · {Math.round(panelProgress * 100)}%
       </div>
       <div className="pointer-events-none absolute bottom-14 left-1/2 z-20 -translate-x-1/2 mono-xs opacity-40">
         {active?.axis === "hairline" ? "scroll — moves the boundary" : `scroll — ${active?.axis}`}
       </div>
+
+      {/* spine ribbon — left edge, fills top→bottom */}
+      <div className="pointer-events-none absolute left-6 top-20 bottom-20 w-px bg-paper/12 z-20" />
+      <div
+        className="pointer-events-none absolute left-6 top-20 w-px bg-bright z-20"
+        style={{ height: `calc((100% - 10rem) * ${progress})` }}
+      />
+      {/* tick per panel along the ribbon */}
+      {panels.map((p, i) => {
+        const tickY = 80 + (i / panels.length) * (typeof window === "undefined" ? 600 : window.innerHeight - 160);
+        const isActive = i === panelIndex;
+        const isPast = i < panelIndex;
+        return (
+          <div
+            key={p.id}
+            className="pointer-events-none absolute mono-xs z-20"
+            style={{
+              left: "34px",
+              top: `${tickY}px`,
+              fontSize: 10,
+              opacity: isActive ? 1 : isPast ? 0.6 : 0.25,
+              color: isActive ? "#2DD4BF" : "inherit",
+              transition: "opacity 280ms cubic-bezier(0.16, 1, 0.3, 1), color 280ms cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {isActive ? "●" : isPast ? "✓" : "○"} {p.name}
+          </div>
+        );
+      })}
     </div>
   );
 }
