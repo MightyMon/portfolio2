@@ -12,7 +12,10 @@ export default function AccessControl({ progress }: { progress: number }) {
 
   useEffect(() => {
     if (!cardRef.current) return;
-    gsap.set(cardRef.current, { xPercent: progress * 100, ease: "power4.out" });
+    // travel from -5% (just left of first station) to ~105% (past strike)
+    const parentW = cardRef.current.parentElement?.clientWidth ?? 1200;
+    const x = -60 + progress * (parentW + 120);
+    gsap.set(cardRef.current, { x, ease: "power4.out" });
     const idx = Math.min(STATIONS.length - 1, Math.floor(progress * STATIONS.length));
     if (idx !== lastIdx.current) { lastIdx.current = idx; setFlashedIdx(idx); setTimeout(() => setFlashedIdx(-1), 220); }
   }, [progress]);

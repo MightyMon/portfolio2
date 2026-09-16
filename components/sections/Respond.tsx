@@ -29,7 +29,7 @@ export default function Respond() {
             <li>— assume breach.</li>
             <li>— close the loop.</li>
             <li className="pt-4 text-ink/70">
-              icpc 2023 taught me timeboxed reps. karate taught me a decade of katas. speaking at
+              icpc 2023 taught me timeboxed reps. karate taught me discipline. speaking at
               safer internet day taught me public disclosure. systems that watch themselves are
               the only ones worth shipping.
             </li>
