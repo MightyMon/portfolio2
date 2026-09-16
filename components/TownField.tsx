@@ -147,9 +147,10 @@ function Field({ pointer }: { pointer: React.MutableRefObject<{ x: number; y: nu
   );
 }
 
-function Rig() {
+function Rig({ frozen = false }: { frozen?: boolean }) {
   const pointer = useRef({ x: 0, y: 0 });
   useEffect(() => {
+    if (frozen) return; // skip all listeners on mobile
     const onMove = (e: PointerEvent) => {
       pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
@@ -168,7 +169,7 @@ function Rig() {
       window.removeEventListener("scroll", onScroll);
       clearInterval(t);
     };
-  }, []);
+  }, [frozen]);
   return <Field pointer={pointer} />;
 }
 
@@ -189,29 +190,8 @@ export default function TownField() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Mobile fallback: instead of WebGL, render a static packet-field grid + label
-  if (isMobile) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          opacity,
-          transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1)",
-          pointerEvents: "none",
-          background: "radial-gradient(ellipse at 50% 45%, rgba(45,212,191,0.22), transparent 60%)",
-        }}
-      >
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="mono-xs opacity-25" style={{ letterSpacing: "0.3em" }}>
-            · packets in flight ·
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Don't unmount Canvas — React + R3F teardown is fragile on mobile and triggers
+  // removeChild hydration errors. Hide + pause rendering instead: keeps tree intact.
   return (
     <div
       style={{
@@ -221,14 +201,16 @@ export default function TownField() {
         opacity,
         transition: "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1)",
         pointerEvents: "none",
+        visibility: isMobile ? "hidden" : "visible",
       }}
     >
       <Canvas
         dpr={[1, 2]}
         camera={{ position: [0, 0, 26], fov: 45, near: 0.1, far: 200 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        frameloop={isMobile ? "never" : "always"}
       >
-        <Rig />
+        <Rig frozen={isMobile} />
       </Canvas>
     </div>
   );

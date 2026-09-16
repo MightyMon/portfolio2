@@ -5,10 +5,13 @@ import { announceStage, snapshot, formatDuration, onMetrics, LoopMetrics } from 
 
 export default function LoopClosed() {
   const root = useRef<HTMLElement>(null);
-  const [m, setM] = useState<LoopMetrics>(snapshot());
-  const [now, setNow] = useState(Date.now());
+  // initialize with stable SSR values; populate from snapshot() inside effect (no hydration mismatch)
+  const [m, setM] = useState<LoopMetrics>({ packets: 0, inspected: 0, anomalies: 0, startAt: 0, maxScroll: 0 });
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
+    setM(snapshot());
+    setNow(Date.now());
     const io = new IntersectionObserver(
       (entries) => { for (const e of entries) if (e.isIntersecting) announceStage("LOOP CLOSED"); },
       { threshold: 0.3 }
