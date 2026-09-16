@@ -8,6 +8,7 @@ import AccessControl from "@/components/dissect/panels/AccessControl";
 import NetworkAnalyzer from "@/components/dissect/panels/NetworkAnalyzer";
 import Exosky from "@/components/dissect/panels/Exosky";
 import Homelab from "@/components/dissect/panels/Homelab";
+import { useEffect, useState } from "react";
 
 const P: Record<string, React.ComponentType<{ progress: number }>> = {
   sovrego: Sovrego,
@@ -36,6 +37,14 @@ const ORDER: { id: keyof typeof P; name: string; axis: string }[] = [
 ];
 
 export default function DissectGallery() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const panels = ORDER.map((o) => ({
     id: String(o.id),
     name: o.name,
@@ -44,5 +53,33 @@ export default function DissectGallery() {
     verb: "",
     component: P[String(o.id)] as React.ComponentType<{ progress: number; commit?: (earned: number) => void; onReady?: (r: boolean) => void }>,
   }));
+
+  if (isMobile) {
+    return (
+      <section className="stage" id="dissect">
+        <div className="stage-label"><span>04</span><span>/</span><span>dissect</span><span className="hr" /><span className="opacity-50">tap-to-complete</span></div>
+        <div className="mt-14 space-y-16">
+          {panels.map((p) => (
+            <MobileCard key={p.id} id={p.id} name={p.name} axis={p.axis} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return <Rail panels={panels} />;
+}
+
+function MobileCard({ id, name, axis }: { id: string; name: string; axis: string }) {
+  const [done, setDone] = useState(false);
+  const tap = () => setDone(true);
+  return (
+    <div onClick={tap} className={`border p-6 transition-all ${done ? "border-bright" : "border-paper/15"}`}>
+      <div className="mono-xs opacity-60 mb-3">{axis}</div>
+      <div className="display-c" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(1.6rem, 8vw, 3rem)" }}>{name}</div>
+      <div className="mono-xs mt-4" style={{ opacity: done ? 1 : 0.4, color: done ? "var(--color-bright)" : "inherit" }}>
+        {done ? "✓ task complete" : "tap to complete"}
+      </div>
+    </div>
+  );
 }

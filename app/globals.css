@@ -195,6 +195,25 @@ html, body {
 }
 .logform .row { display: grid; gap: 4px; padding: 18px 0 0; }
 
+/* ===== responsive — mobile ===== */
+@media (max-width: 767px) {
+  .corner { font-size: 9px; letter-spacing: 0.14em; }
+  .corner.tl { top: 12px; left: 12px; }
+  .corner.tr { top: 12px; right: 12px; }
+  .corner.bl { bottom: 12px; left: 12px; }
+  .corner.br { bottom: 12px; right: 12px; }
+  .stage { padding: clamp(3rem, 8vh, 6rem) clamp(1rem, 4vw, 2rem); }
+  .ledger-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
+  .ledger-row .v { font-size: 1rem; }
+  .trace-row { grid-template-columns: 44px 1fr auto; padding: 8px 6px; }
+  .trace-row .glyph { display: none; }
+  .trace-row .name { font-size: 1.1rem; }
+  .logform .row { padding: 12px 0 0; }
+  .pill { padding: 10px 16px; }
+  /* downsize the massive hero on mobile */
+  h1.display-c { font-size: clamp(2.8rem, 16vw, 4.5rem) !important; }
+}
+
 /* grain */
 body::after {
   content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .05;
