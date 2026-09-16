@@ -77,6 +77,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     const rail = railRef.current;
     const travel = rail.scrollWidth - window.innerWidth;
 
+    let stInstance: ScrollTrigger | null = null;
     const st = ScrollTrigger.create({
       trigger: wrapRef.current,
       start: "top top",
@@ -92,10 +93,10 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
           const prev = panels[rawIdx - 1];
           // blocked if prev panel isn't ready
           const prevReady = readyMap[String(prev.id)] ?? false;
-          if (!prevReady) {
+          if (!prevReady && stInstance) {
             const clamp = (rawIdx - 1 + 0.98) / panels.length;
             clampedProgress.current = clamp;
-            self.scroll(st.start + (st.end - st.start) * clamp);
+            self.scroll(stInstance.start + (stInstance.end - stInstance.start) * clamp);
             setGateBlocked(String(prev.id));
             return;
           }
@@ -106,6 +107,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
         announceStage("DISSECT");
       },
     });
+    stInstance = st;
     stRef.current = st;
 
     const raf = () => {
