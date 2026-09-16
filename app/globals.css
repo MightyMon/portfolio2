@@ -9,11 +9,6 @@
   font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
-  font-family: "PP Formula Condensed";
-  src: url("/fonts/formula/PPFormula-CondensedBoldItalic.ttf") format("truetype");
-  font-weight: 700; font-style: italic; font-display: swap;
-}
-@font-face {
   font-family: "PP Formula Extended";
   src: url("/fonts/formula/PPFormula-ExtendedBold.ttf") format("truetype");
   font-weight: 700; font-style: normal; font-display: swap;
@@ -60,7 +55,8 @@ html, body {
 .display-c {
   font-family: var(--font-condensed);
   font-weight: 900;
-  font-style: normal;
+  font-style: italic;         /* use synth italic since Black is upright */
+  font-synthesis-style: auto;
   text-transform: uppercase;
   letter-spacing: -0.02em;
   line-height: 0.95;

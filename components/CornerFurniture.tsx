@@ -11,7 +11,10 @@ export default function CornerFurniture() {
   const [stage, setStage] = useState("BOOT");
   const [packets, setPackets] = useState(0);
   const [clock, setClock] = useState("--:--");
-  const [sessionId] = useState(() => "0x" + Math.floor(Math.random() * 0xfff).toString(16).padStart(3, "0").toUpperCase());
+  const [sessionId, setSessionId] = useState("0x···"); // placeholder — hydrated client-side
+  useEffect(() => {
+    setSessionId("0x" + Math.floor(Math.random() * 0xfff).toString(16).padStart(3, "0").toUpperCase());
+  }, []);
 
   useEffect(() => {
     const onStage = (e: Event) => setStage((e as CustomEvent<string>).detail);
