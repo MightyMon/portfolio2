@@ -30,6 +30,7 @@ export default function LoopClosed() {
         <div className="loop-row"><span>scroll depth</span><span className="v">{m.maxScroll}%</span></div>
         <div className="loop-row"><span>anomalies flagged</span><span className="v text-bright">{m.anomalies}</span></div>
         <div className="loop-row"><span>packets inspected</span><span className="v">{m.inspected}</span></div>
+        <div className="loop-row"><span>verbs earned</span><span className="v text-bright">{m.inspected > 0 ? `${m.inspected}` : "—"}</span></div>
 
         <div className="mt-12">
           <a href="#top" className="pill">↺ loop closed — run again?</a>

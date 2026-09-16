@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 function gauss(x: number, mu = 0, s = 1, a = 1) { return a * Math.exp(-((x - mu) ** 2) / (2 * s * s)); }
 
@@ -49,9 +49,13 @@ function Scene({ progress }: { progress: number }) {
   );
 }
 
-export default function Breathalyzer({ progress }: { progress: number }) {
+export default function Breathalyzer({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+  const [exhales, setExhales] = useState(0);
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      onPointerDown={() => { setExhales((c) => { const n = c + 1; commit?.(n); return n; }); }}
+    >
       <div className="absolute left-1/2 top-16 -translate-x-1/2 z-10 text-center">
         <div className="display-c" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5rem)" }}>breathalyzer</div>
         <div className="mono-xs mt-2 opacity-60">zoom-out · signal fusion</div>
@@ -60,7 +64,7 @@ export default function Breathalyzer({ progress }: { progress: number }) {
         <Scene progress={progress} />
       </Canvas>
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
-        {progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged" : "context revealed ✓"}
+        {exhales > 0 ? `exhaled ×${exhales} ✓` : progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged · tap to exhale" : "context revealed ✓"}
       </div>
     </div>
   );

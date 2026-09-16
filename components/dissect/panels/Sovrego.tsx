@@ -20,7 +20,14 @@ allow {
   audit_logged[input.principal]
 }`;
 
-export default function Sovrego({ progress }: { progress: number }) {
+export default function Sovrego({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+  const [compiled, setCompiled] = useState(0);
+  const doCompile = () => {
+    if (progress > 0.7 && commit) {
+      setCompiled((c) => c + 1);
+      commit(compiled + 1);
+    }
+  };
   const stepIdx = Math.min(2, Math.floor(progress * 3));
   const lineLen = Math.min(1, progress * 1.08);
   const done = progress > 0.96;
@@ -59,7 +66,12 @@ export default function Sovrego({ progress }: { progress: number }) {
             strokeDasharray="100" strokeDashoffset={100 - lineLen * 100}
             style={{ filter: done ? "drop-shadow(0 0 6px rgba(45,212,191,0.6))" : undefined }}
           />
-          <circle cx={30 + lineLen * 40} cy={35 + lineLen * 35} r="1.2" fill="#2DD4BF" />
+          <circle
+            cx={30 + lineLen * 40} cy={35 + lineLen * 35} r="2.4" fill="#2DD4BF"
+            style={{ cursor: progress > 0.7 ? "pointer" : "default" }}
+            onClick={doCompile}
+          />
+          {compiled > 0 && <text x={30 + lineLen * 40 + 4} y={35 + lineLen * 35} fill="#2DD4BF" fontSize="6" fontFamily="monospace">sha ✓</text>}
         </svg>
 
         {/* three steps rail */}
@@ -81,7 +93,7 @@ export default function Sovrego({ progress }: { progress: number }) {
       </div>
 
       <div className="flex justify-between">
-        <div className="mono-xs opacity-50">{done ? "resolved ✓" : "translating…"}</div>
+        <div className="mono-xs opacity-50">{compiled > 0 ? `compiled ×${compiled} ✓` : done ? "resolved ✓" : "translating…"}</div>
         <div className="mono-xs opacity-50">{Math.round(progress * 100)}%</div>
       </div>
 

@@ -5,7 +5,8 @@ import gsap from "gsap";
 
 const STATIONS = ["card", "rfid antenna", "rp2040", "relay", "strike"];
 
-export default function AccessControl({ progress }: { progress: number }) {
+export default function AccessControl({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+  const scansDone = useRef(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const lastIdx = useRef(-1);
   const [flashedIdx, setFlashedIdx] = useState(-1);
@@ -17,7 +18,15 @@ export default function AccessControl({ progress }: { progress: number }) {
     const x = -60 + progress * (parentW + 120);
     gsap.set(cardRef.current, { x, ease: "power4.out" });
     const idx = Math.min(STATIONS.length - 1, Math.floor(progress * STATIONS.length));
-    if (idx !== lastIdx.current) { lastIdx.current = idx; setFlashedIdx(idx); setTimeout(() => setFlashedIdx(-1), 220); }
+    if (idx !== lastIdx.current) {
+      lastIdx.current = idx;
+      setFlashedIdx(idx);
+      setTimeout(() => setFlashedIdx(-1), 220);
+      if (idx === STATIONS.length - 1 && !scansDone.current) {
+        scansDone.current = true;
+        commit?.(1);
+      }
+    }
   }, [progress]);
 
   return (

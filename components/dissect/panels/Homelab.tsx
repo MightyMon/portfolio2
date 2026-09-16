@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
 type Tray = { id: string; label: string; spec: string; service: string };
@@ -11,7 +11,7 @@ const TRAYS: Tray[] = [
   { id: "net",     label: "net",          spec: "10g sfp+",        service: "wireguard gateway" },
 ];
 
-export default function Homelab({ progress }: { progress: number }) {
+export default function Homelab({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
   const [openCount, setOpenCount] = useState(0);
   const dragState = useRef<{ tray: string | null; startX: number; trayStartX: number }>({ tray: null, startX: 0, trayStartX: 0 });
   const trayRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -38,7 +38,11 @@ export default function Homelab({ progress }: { progress: number }) {
     if (!s.tray) return;
     const x = gsap.getProperty(trayRefs.current[id]!, "x") as number;
     const open = x > 70;
-    if (open && !openSet.current.has(id)) { openSet.current.add(id); setOpenCount(openSet.current.size); }
+    if (open && !openSet.current.has(id)) {
+      openSet.current.add(id);
+      setOpenCount(openSet.current.size);
+      commit?.(openSet.current.size);
+    }
     if (!open) openSet.current.delete(id);
     gsap.to(trayRefs.current[id]!, { x: open ? 160 : 0, duration: 0.35, ease: "power4.out" });
     dragState.current = { tray: null, startX: 0, trayStartX: 0 };

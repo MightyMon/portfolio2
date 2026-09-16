@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
 
 type GraphNode = { pos: [number, number, number]; isRing: boolean; parent?: number };
 
@@ -65,7 +65,9 @@ function Orbiter({ progress }: { progress: number }) {
   return null;
 }
 
-export default function NetworkAnalyzer({ progress }: { progress: number }) {
+export default function NetworkAnalyzer({ progress, commit }: { progress: number; commit?: (n: number) => void }) {
+  const traced = useRef(false);
+  useEffect(() => { if (progress > 0.7 && !traced.current) { traced.current = true; commit?.(1); } }, [progress, commit]);
   return (
     <div className="relative h-full w-full">
       <div className="absolute left-1/2 top-16 -translate-x-1/2 z-10 text-center">
