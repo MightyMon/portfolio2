@@ -164,6 +164,14 @@ export default function Exosky({ progress, commit, onReady }: { progress: number
         <CameraRig progress={progress} pointer={pointer} />
       </Canvas>
 
+      {/* task banner */}
+      {!lockedOnce.current && (
+        <div className="absolute left-1/2 bottom-24 -translate-x-1/2 z-10 mono-xs text-center pointer-events-none"
+          style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "6px 14px", letterSpacing: "0.18em", fontSize: 10 }}>
+          TASK — keep scrolling through all 3 phases until target locks
+        </div>
+      )}
+
       {/* catalog strip */}
       <div className="absolute bottom-16 right-8 mono-xs text-right" style={{ color: "rgba(237,240,232,0.8)" }}>
         <div className="text-bright" style={{ opacity: 0.85 }}>catalog · {logged.length} logged</div>

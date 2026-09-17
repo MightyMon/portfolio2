@@ -51,7 +51,7 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
   };
 
   return (
-    <div className="flex h-full w-full flex-col justify-between p-12">
+    <div className="flex h-full w-full flex-col justify-between p-12 relative">
       <div className="stage-label"><span>T-006</span><span>/</span><span>homelab</span><span className="hr" /><span className="opacity-50">drag axis</span></div>
 
       <div className="grid flex-1 gap-10 md:grid-cols-[320px_1fr] items-center">
@@ -92,9 +92,17 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
       </div>
 
       <div className="flex justify-between">
-        <div className="mono-xs opacity-50">{openCount === 0 ? "drag to pull tray" : `devices live: ${openCount} / 4`}</div>
+        <div className="mono-xs opacity-50">{openCount === 0 ? "drag to pull tray" : openCount >= 4 ? `all 4 docked ✓ — gate open` : `devices live: ${openCount} / 4`}</div>
         <div className="mono-xs opacity-50">{Math.round(progress * 100)}%</div>
       </div>
+
+      {/* task banner */}
+      {openCount < 4 && (
+        <div className="absolute left-1/2 bottom-24 -translate-x-1/2 mono-xs text-center"
+          style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "6px 14px", letterSpacing: "0.18em", fontSize: 10 }}>
+          TASK — drag all 4 handles right to dock all trays ({openCount}/4)
+        </div>
+      )}
     </div>
   );
 }

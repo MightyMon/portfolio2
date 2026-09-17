@@ -79,8 +79,14 @@ export default function NetworkAnalyzer({ progress, commit, onReady }: { progres
         <Orbiter progress={progress} />
         <Topology />
       </Canvas>
+      {!traced.current && (
+        <div className="absolute left-1/2 bottom-24 -translate-x-1/2 z-10 mono-xs text-center pointer-events-none"
+          style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "6px 14px", letterSpacing: "0.18em", fontSize: 10 }}>
+          TASK — keep scrolling until the orbit passes 70%
+        </div>
+      )}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
-        {progress < 0.3 ? `orbiting · ${Math.round(progress * 360)}°` : progress < 1 ? `orbiting · ${Math.round(progress * 360)}°` : "topology mapped ✓"}
+        {traced.current ? "route traced ✓ — gate open" : `orbiting · ${Math.round(progress * 360)}°`}
       </div>
     </div>
   );

@@ -64,8 +64,15 @@ export default function Breathalyzer({ progress, commit, onReady }: { progress: 
       <Canvas camera={{ position: [0, 0, 6], fov: 55 }} style={{ position: "absolute", inset: 0 }}>
         <Scene progress={progress} />
       </Canvas>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
-        {exhales > 0 ? `exhaled ×${exhales} ✓` : progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged · tap to exhale" : "context revealed ✓"}
+      {/* task banner */}
+      {exhales === 0 && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 mono-xs text-center pointer-events-none"
+          style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "8px 16px", letterSpacing: "0.18em", fontSize: 11 }}>
+          TASK — tap anywhere to exhale
+        </div>
+      )}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70 z-10">
+        {exhales > 0 ? `exhaled ×${exhales} ✓ — gate open` : progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged · tap anywhere" : "context revealed · tap to exhale"}
       </div>
     </div>
   );

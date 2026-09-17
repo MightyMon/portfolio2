@@ -30,6 +30,14 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
     }
   }, [progress]);
 
+  // tap the card to jump it forward — helps when gating makes scroll feel stuck
+  const tapCard = () => {
+    const next = Math.min(1, progress + 0.18);
+    if (!cardRef.current) return;
+    const parentW = cardRef.current.parentElement?.clientWidth ?? 1200;
+    gsap.set(cardRef.current, { x: -60 + next * (parentW + 120) });
+  };
+
   return (
     <div className="relative flex h-full w-full flex-col justify-between p-12">
       <div className="stage-label"><span>T-003</span><span>/</span><span>access control</span><span className="hr" /><span className="opacity-50">horizontal axis</span></div>
@@ -49,10 +57,18 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
           </div>
         ))}
 
-        {/* moving card */}
-        <div ref={cardRef} className="absolute top-1/2 z-10 -translate-y-1/2" style={{ left: "-4%", willChange: "transform" }}>
+        {/* moving card (tap-to-jump) */}
+        <div ref={cardRef} className="absolute top-1/2 z-10 -translate-y-1/2 cursor-pointer" onClick={tapCard} style={{ left: "-4%", willChange: "transform" }}>
           <svg width="44" height="30" viewBox="0 0 44 30"><rect width="44" height="30" rx="3" fill="#2DD4BF"/><text x="8" y="20" fontFamily="monospace" fontSize="10" fill="#0B0C09">ID</text></svg>
         </div>
+
+        {/* task banner */}
+        {!scansDone.current && (
+          <div className="absolute left-1/2 bottom-4 -translate-x-1/2 mono-xs text-center"
+            style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "6px 14px", letterSpacing: "0.18em", fontSize: 10 }}>
+            TASK — scroll the card all the way right, past the strike
+          </div>
+        )}
 
         {/* title */}
         <div className="display-c absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5.5rem)", opacity: 0.12 }}>
@@ -61,7 +77,7 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
       </div>
 
       <div className="flex justify-between">
-        <div className="mono-xs opacity-50">{progress < 1 ? "swiping ▸" : "door open ✓"}</div>
+        <div className="mono-xs opacity-50">{scansDone.current ? "swiped ✓ — gate open" : progress < 1 ? "swiping ▸" : "door open ✓"}</div>
         <div className="mono-xs opacity-50" style={{ color: progress > 0.95 ? "#2DD4BF" : "inherit" }}>{progress > 0.95 ? "door open" : `${Math.round(progress * 100)}%`}</div>
       </div>
     </div>
