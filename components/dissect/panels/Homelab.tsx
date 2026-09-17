@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import type { Artifact } from "@/lib/session";
 
 type Tray = { id: string; label: string; spec: string; service: string };
 const TRAYS: Tray[] = [
@@ -13,10 +15,28 @@ const TRAYS: Tray[] = [
 
 export default function Homelab({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [openCount, setOpenCount] = useState(0);
-  useEffect(() => { onReady?.(openCount >= 4); }, [openCount, onReady]);
+  const syncedOnce = useRef(false);
+  useEffect(() => {
+    onReady?.(openCount >= 4);
+    if (openCount >= 4 && !syncedOnce.current) {
+      syncedOnce.current = true;
+      stashArtifact({
+        kind: "sync",
+        label: `cluster synced · catalog landed on node-01`,
+        from: "homelab",
+      });
+    }
+  }, [openCount, onReady]);
   const dragState = useRef<{ tray: string | null; startX: number; trayStartX: number }>({ tray: null, startX: 0, trayStartX: 0 });
   const trayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const openSet = useRef<Set<string>>(new Set());
+  const [catalog, setCatalog] = useState<Artifact | null>(null);
+  useEffect(() => {
+    const existing = latestArtifact("catalogEntry");
+    if (existing) setCatalog(existing);
+    const un = onArtifact((a) => { if (a.kind === "catalogEntry") setCatalog(a); });
+    return un;
+  }, []);
 
   const setTrayX = (id: string, x: number) => {
     const el = trayRefs.current[id];
@@ -53,6 +73,11 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
   return (
     <div className="flex h-full w-full flex-col justify-between p-12 relative">
       <div className="stage-label"><span>T-006</span><span>/</span><span>homelab</span><span className="hr" /><span className="opacity-50">drag axis</span></div>
+      {catalog && (
+        <div className="mono-xs mt-2 text-bright" style={{ fontSize: 11, letterSpacing: "0.12em" }}>
+          ◂ fed by exosky — {catalog.label} · landing on node-01
+        </div>
+      )}
 
       <div className="grid flex-1 gap-10 md:grid-cols-[320px_1fr] items-center">
         {/* rack */}

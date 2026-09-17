@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import type { Artifact } from "@/lib/session";
 
 const STATIONS = ["card", "rfid antenna", "rp2040", "relay", "strike"];
 
@@ -11,6 +13,13 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
   const cardRef = useRef<HTMLDivElement>(null);
   const lastIdx = useRef(-1);
   const [flashedIdx, setFlashedIdx] = useState(-1);
+  const [signature, setSignature] = useState<Artifact | null>(null);
+  useEffect(() => {
+    const existing = latestArtifact("signature");
+    if (existing) setSignature(existing);
+    const un = onArtifact((a) => { if (a.kind === "signature") setSignature(a); });
+    return un;
+  }, []);
 
   useEffect(() => {
     if (!cardRef.current) return;
@@ -26,9 +35,14 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
       if (idx === STATIONS.length - 1 && !scansDone.current) {
         scansDone.current = true;
         commit?.(1);
+        stashArtifact({
+          kind: "doorOpen",
+          label: `door 03 opened · sig ${signature ? "verified" : "missing"}`,
+          from: "access-control",
+        });
       }
     }
-  }, [progress]);
+  }, [progress, signature]);
 
   // tap the card to jump it forward — helps when gating makes scroll feel stuck
   const tapCard = () => {
@@ -59,7 +73,16 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
 
         {/* moving card (tap-to-jump) */}
         <div ref={cardRef} className="absolute top-1/2 z-10 -translate-y-1/2 cursor-pointer" onClick={tapCard} style={{ left: "-4%", willChange: "transform" }}>
-          <svg width="44" height="30" viewBox="0 0 44 30"><rect width="44" height="30" rx="3" fill="#2DD4BF"/><text x="8" y="20" fontFamily="monospace" fontSize="10" fill="#0B0C09">ID</text></svg>
+          <svg width="44" height="30" viewBox="0 0 44 30">
+            <rect width="44" height="30" rx="3" fill="#2DD4BF"/>
+            <text x="8" y="20" fontFamily="monospace" fontSize="10" fill="#0B0C09">ID</text>
+            {signature && <circle cx="38" cy="6" r="2.5" fill="#0B0C09" />}
+          </svg>
+          {signature && (
+            <div className="mono-xs absolute -top-5 whitespace-nowrap text-bright" style={{ fontSize: 9, letterSpacing: "0.15em" }}>
+              ◂ sig · breathalyzer
+            </div>
+          )}
         </div>
 
         {/* task banner */}

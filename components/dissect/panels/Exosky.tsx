@@ -1,8 +1,10 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import type { Artifact } from "@/lib/session";
 
 const STARS = 800;
 
@@ -109,7 +111,24 @@ function CameraRig({ progress, pointer }: { progress: number; pointer: React.Ref
 export default function Exosky({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   useEffect(() => { onReady?.(lockedOnce.current); });
   const lockedOnce = useRef(false);
-  useEffect(() => { if (progress >= 0.7 && !lockedOnce.current) { lockedOnce.current = true; commit?.(1); } }, [progress, commit]);
+  const [pcap, setPcap] = useState<Artifact | null>(null);
+  useEffect(() => {
+    const existing = latestArtifact("pcap");
+    if (existing) setPcap(existing);
+    const un = onArtifact((a) => { if (a.kind === "pcap") setPcap(a); });
+    return un;
+  }, []);
+  useEffect(() => {
+    if (progress >= 0.7 && !lockedOnce.current) {
+      lockedOnce.current = true;
+      commit?.(1);
+      stashArtifact({
+        kind: "catalogEntry",
+        label: `k2-18b · 120pc · ${pcap ? "telescope seated via network route" : "default catalog"}`,
+        from: "exosky",
+      });
+    }
+  }, [progress, commit, pcap]);
   const stars = useMemo(makeStars, []);
   const pointer = useRef({ x: 0, y: 0 });
   const [logged, setLogged] = useState<string[]>([]);
@@ -155,6 +174,11 @@ export default function Exosky({ progress, commit, onReady }: { progress: number
           {acq && "phase 2 · acquisition — drag to catalog candidates"}
           {locked && "phase 3 · lock · candidate selected"}
         </div>
+        {pcap && (
+          <div className="mono-xs mt-2 text-bright" style={{ fontSize: 11, letterSpacing: "0.15em" }}>
+            ◂ fed by network — {pcap.label}
+          </div>
+        )}
       </div>
 
       <Canvas camera={{ position: [0, 0, 42], fov: 50 }} style={{ position: "absolute", inset: 0 }}>

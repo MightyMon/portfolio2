@@ -3,6 +3,8 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import type { Artifact } from "@/lib/session";
 
 function gauss(x: number, mu = 0, s = 1, a = 1) { return a * Math.exp(-((x - mu) ** 2) / (2 * s * s)); }
 
@@ -52,14 +54,44 @@ function Scene({ progress }: { progress: number }) {
 export default function Breathalyzer({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [exhales, setExhales] = useState(0);
   useEffect(() => { onReady?.(exhales > 0); }, [exhales, onReady]);
+
+  // artifact from sovrego arrives — gates us
+  const [policy, setPolicy] = useState<Artifact | null>(null);
+  useEffect(() => {
+    const existing = latestArtifact("policy");
+    if (existing) setPolicy(existing);
+    const un = onArtifact((a) => { if (a.kind === "policy") setPolicy(a); });
+    return un;
+  }, []);
+
+  const doExhale = () => {
+    setExhales((c) => {
+      const n = c + 1;
+      commit?.(n);
+      if (n === 1) {
+        stashArtifact({
+          kind: "signature",
+          label: `breath sig · σ${(0.4 + Math.random() * 0.4).toFixed(2)} · ${policy ? "policy-gated" : "unsigned"}`,
+          from: "breathalyzer",
+        });
+      }
+      return n;
+    });
+  };
+
   return (
     <div
       className="relative h-full w-full"
-      onPointerDown={() => { setExhales((c) => { const n = c + 1; commit?.(n); return n; }); }}
+      onPointerDown={doExhale}
     >
       <div className="absolute left-1/2 top-16 -translate-x-1/2 z-10 text-center">
         <div className="display-c" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5rem)" }}>breathalyzer</div>
         <div className="mono-xs mt-2 opacity-60">zoom-out · signal fusion</div>
+        {policy && (
+          <div className="mono-xs mt-2 text-bright" style={{ fontSize: 11, letterSpacing: "0.15em" }}>
+            ◂ fed by sovrego — {policy.label}
+          </div>
+        )}
       </div>
       <Canvas camera={{ position: [0, 0, 6], fov: 55 }} style={{ position: "absolute", inset: 0 }}>
         <Scene progress={progress} />
@@ -68,11 +100,11 @@ export default function Breathalyzer({ progress, commit, onReady }: { progress: 
       {exhales === 0 && (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 mono-xs text-center pointer-events-none"
           style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "8px 16px", letterSpacing: "0.18em", fontSize: 11 }}>
-          TASK — tap anywhere to exhale
+          TASK — tap anywhere to exhale{policy ? " · signed by policy" : ""}
         </div>
       )}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70 z-10">
-        {exhales > 0 ? `exhaled ×${exhales} ✓ — gate open` : progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged · tap anywhere" : "context revealed · tap to exhale"}
+        {exhales > 0 ? `sig out ▸ ×${exhales}` : progress < 0.5 ? `pulling back… ${Math.round(progress * 100)}%` : progress < 1 ? "signal fusion engaged · tap anywhere" : "context revealed · tap to exhale"}
       </div>
     </div>
   );

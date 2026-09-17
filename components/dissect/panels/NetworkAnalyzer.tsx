@@ -2,7 +2,9 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
+import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import type { Artifact } from "@/lib/session";
 
 type GraphNode = { pos: [number, number, number]; isRing: boolean; parent?: number };
 
@@ -68,12 +70,34 @@ function Orbiter({ progress }: { progress: number }) {
 export default function NetworkAnalyzer({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   useEffect(() => { onReady?.(traced.current); });
   const traced = useRef(false);
-  useEffect(() => { if (progress > 0.7 && !traced.current) { traced.current = true; commit?.(1); } }, [progress, commit]);
+  const [doorOpen, setDoorOpen] = useState<Artifact | null>(null);
+  useEffect(() => {
+    const existing = latestArtifact("doorOpen");
+    if (existing) setDoorOpen(existing);
+    const un = onArtifact((a) => { if (a.kind === "doorOpen") setDoorOpen(a); });
+    return un;
+  }, []);
+  useEffect(() => {
+    if (progress > 0.7 && !traced.current) {
+      traced.current = true;
+      commit?.(1);
+      stashArtifact({
+        kind: "pcap",
+        label: `route traced · 36 nodes · ${doorOpen ? "door packet found" : "no door traffic"}`,
+        from: "network-analyzer",
+      });
+    }
+  }, [progress, commit, doorOpen]);
   return (
     <div className="relative h-full w-full">
       <div className="absolute left-1/2 top-16 -translate-x-1/2 z-10 text-center">
         <div className="display-c" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5rem)" }}>network analyzer</div>
         <div className="mono-xs mt-2 opacity-60">orbit · pcap → graph</div>
+        {doorOpen && (
+          <div className="mono-xs mt-2 text-bright" style={{ fontSize: 11, letterSpacing: "0.15em" }}>
+            ◂ fed by access — {doorOpen.label}
+          </div>
+        )}
       </div>
       <Canvas camera={{ position: [0, 4.5, 14], fov: 55 }} style={{ position: "absolute", inset: 0 }}>
         <Orbiter progress={progress} />

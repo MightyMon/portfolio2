@@ -61,6 +61,12 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     setReadyMap((m) => (m[id] === ready ? m : { ...m, [id]: ready }));
   };
 
+  // mirror of readyMap in a ref — ScrollTrigger's onUpdate reads this so the
+  // effect doesn't need readyMap in deps (re-creating ST was causing the
+  // "bounce back to previous panel" after each gate opened)
+  const readyMapRef = useRef<Record<string, boolean>>({});
+  useEffect(() => { readyMapRef.current = readyMap; }, [readyMap]);
+
   const panelIndex = Math.min(panels.length - 1, Math.floor(progress * panels.length));
   const panelProgress = (progress * panels.length) % 1;
   const active = panels[panelIndex];
@@ -78,6 +84,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     const travel = rail.scrollWidth - window.innerWidth;
 
     let stInstance: ScrollTrigger | null = null;
+
     const st = ScrollTrigger.create({
       trigger: wrapRef.current,
       start: "top top",
@@ -92,7 +99,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
         if (rawIdx > 0) {
           const prev = panels[rawIdx - 1];
           // blocked if prev panel isn't ready
-          const prevReady = readyMap[String(prev.id)] ?? false;
+          const prevReady = readyMapRef.current[String(prev.id)] ?? false;
           if (!prevReady && stInstance) {
             const clamp = (rawIdx - 1 + 0.98) / panels.length;
             clampedProgress.current = clamp;
@@ -118,7 +125,7 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
     };
     const ticker = gsap.ticker.add(raf);
     return () => { st.kill(); gsap.ticker.remove(ticker); };
-  }, [panels, readyMap, railEnabled]);
+  }, [panels, railEnabled]);
 
   // null → not yet decided (or mobile) — render nothing. True → render desktop rail.
   if (railEnabled !== true) return null;

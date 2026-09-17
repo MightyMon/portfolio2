@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { stashArtifact } from "@/lib/session";
 
 const STEPS = ["reformulate", "retrieve", "synthesize"];
 
@@ -28,6 +29,14 @@ export default function Sovrego({ progress, commit, onReady }: { progress: numbe
     setCompiled((c) => {
       const next = c + 1;
       commit?.(next);
+      if (next === 1) {
+        const sha = "0x" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0").toUpperCase();
+        stashArtifact({
+          kind: "policy",
+          label: `rego policy · sha ${sha}`,
+          from: "sovrego",
+        });
+      }
       return next;
     });
     setHintVisible(false);
@@ -124,6 +133,13 @@ export default function Sovrego({ progress, commit, onReady }: { progress: numbe
         {compiled > 0 && (
           <div className="absolute right-12 top-12 mono-xs text-bright">
             ✓ policy compiled · sha 0x{Math.random().toString(16).slice(2, 8).toUpperCase()}
+          </div>
+        )}
+
+        {/* handoff arrow — artifact exits right toward breathalyzer */}
+        {compiled > 0 && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 mono-xs text-bright pointer-events-none" style={{ fontSize: 11, letterSpacing: "0.15em" }}>
+            policy ▸
           </div>
         )}
 

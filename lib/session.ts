@@ -56,3 +56,43 @@ export function formatDuration(ms: number) {
   const r = s % 60;
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }
+
+// ── artifact bus — panels hand artifacts to each other ─────────────────────
+
+export type ArtifactKind = "policy" | "signature" | "doorOpen" | "pcap" | "catalogEntry" | "sync";
+export type Artifact = {
+  kind: ArtifactKind;
+  /** short human label like "rego policy · sha 0xAB12" */
+  label: string;
+  /** which panel produced it (so the next panel can show '← fed by X') */
+  from: string;
+  at: number;
+};
+
+const artifacts: Artifact[] = [];
+const artifactListeners = new Set<(a: Artifact) => void>();
+
+export function stashArtifact(a: Omit<Artifact, "at">) {
+  const withTime: Artifact = { ...a, at: Date.now() };
+  artifacts.push(withTime);
+  for (const fn of artifactListeners) fn(withTime);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent<Artifact>("mighty:artifact", { detail: withTime }));
+  }
+}
+
+export function onArtifact(fn: (a: Artifact) => void) {
+  artifactListeners.add(fn);
+  return () => { artifactListeners.delete(fn); };
+}
+
+export function latestArtifact(kind: ArtifactKind): Artifact | undefined {
+  for (let i = artifacts.length - 1; i >= 0; i--) {
+    if (artifacts[i].kind === kind) return artifacts[i];
+  }
+  return undefined;
+}
+
+export function allArtifacts(): Artifact[] {
+  return [...artifacts];
+}
