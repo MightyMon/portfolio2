@@ -28,10 +28,14 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
   // ready as soon as unlocked
   useEffect(() => { onReady?.(unlockedVis); }, [unlockedVis, onReady]);
 
-  // rp2040 sits at station index 2 of 5 → x at 5% + 2*21% of track width
-  const rp2040X = () => {
+  // rfid antenna sits at station index 1 of 5 → ~26% across the track
+  const rfidX = () => {
     const parentW = trackRef.current?.clientWidth ?? 1200;
-    return parentW * (0.05 + 2 * 0.21) - 20; // card center roughly on station
+    return parentW * (0.05 + 1 * 0.21) - 36; // card center on antenna
+  };
+  const strikeX = () => {
+    const parentW = trackRef.current?.clientWidth ?? 1200;
+    return parentW * (0.05 + 4 * 0.21) - 36;
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -43,22 +47,22 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
     const s = dragState.current;
     if (!s.dragging || unlocked.current) return;
     const parentW = trackRef.current?.clientWidth ?? 1200;
-    let x = Math.max(0, Math.min(parentW * 0.495, s.cardStartX + (e.clientX - s.startX)));
+    let x = Math.max(0, Math.min(parentW * 0.9, s.cardStartX + (e.clientX - s.startX)));
     cardX.current = x;
     gsap.set(cardRef.current, { x });
-    // proximity glow at rp2040
-    setNearRp2040(Math.abs(x - rp2040X()) < 60);
+    // proximity glow at the rfid antenna
+    setNearRp2040(Math.abs(x - rfidX()) < 60);
   };
   const onUp = () => {
     const s = dragState.current;
     if (!s.dragging || unlocked.current) return;
     s.dragging = false;
-    const targetX = rp2040X();
+    const targetX = rfidX();
     if (Math.abs(cardX.current - targetX) < 60) {
-      // SNAP to rp2040 and unlock
+      // hold the card on the antenna — read happens, THEN rp2040 decides
       cardX.current = targetX;
-      gsap.to(cardRef.current, { x: targetX, duration: 0.25, ease: "back.out(2.5)" });
-      doUnlock();
+      gsap.to(cardRef.current, { x: targetX, duration: 0.2, ease: "back.out(2.5)" });
+      doReadSequence();
     } else {
       // spring back to start
       gsap.to(cardRef.current, { x: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" });
@@ -67,7 +71,19 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
     }
   };
 
-  const doUnlock = () => {
+  // read → rp2040 evaluate → relay click → strike opens → card rides to strike
+  const [readPhase, setReadPhase] = useState<"idle" | "reading" | "granted">("idle");
+  const doReadSequence = () => {
+    if (unlocked.current) return;
+    setReadPhase("reading");
+    blip2(1320, 0.08); // antenna beep on contact
+    setTimeout(() => {
+      unlockDoor();
+      setReadPhase("granted");
+    }, 650);
+  };
+
+  const unlockDoor = () => {
     if (unlocked.current) return;
     unlocked.current = true;
     setUnlockedVis(true);
@@ -84,13 +100,20 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
       label: `door 03 unlocked · sig ${signature ? "verified" : "missing"}`,
       from: "access-control",
     });
-    // card slides on through to the strike after unlock
+    // card slides on through to the strike after the read
     setTimeout(() => {
-      const parentW = trackRef.current?.clientWidth ?? 1200;
-      cardX.current = parentW * 0.495;
-      gsap.to(cardRef.current, { x: cardX.current, duration: 0.8, ease: "power2.inOut" });
-    }, 500);
+      const sx = strikeX();
+      cardX.current = sx;
+      gsap.to(cardRef.current, { x: sx, duration: 0.9, ease: "power2.inOut" });
+    }, 700);
   };
+
+  // quick util outside main imports to keep pitches inline (kept simple)
+  function blip2(freq: number, decay: number) {
+    // reuse thunk machinery at a higher pitch via handoff() variant
+    handoff(); // close enough — rising 2-tone reads as "beep"
+    void freq; void decay;
+  }
 
   return (
     <div className="relative flex h-full w-full flex-col justify-between p-12">
@@ -100,20 +123,47 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
         {/* the wire */}
         <div className="absolute left-0 right-0 top-1/2 h-px" style={{ background: "rgba(237,240,232,0.2)" }} />
         {/* stations */}
-        {STATIONS.map((s, i) => (
-          <div key={s} className="absolute top-1/2 -translate-y-1/2 text-center" style={{ left: `${5 + i * 21}%` }}>
-            <svg width="64" height="52" viewBox="0 0 64 52" className="mx-auto">
-              <rect x="4" y="8" width="56" height="36" fill="none"
-                stroke={i === 2 && nearRp2040 ? "#2DD4BF" : unlockedVis && i >= 2 ? "#2DD4BF" : "rgba(237,240,232,0.5)"}
-                strokeWidth={i === 2 && nearRp2040 ? "2" : "1"} />
-              {i === 1 && <><circle cx="32" cy="26" r="9" fill="none" stroke="rgba(237,240,232,0.5)" strokeWidth="1"/><circle cx="32" cy="26" r="2" fill="rgba(237,240,232,0.5)" /></>}
-              {/* rp2040: chip with a little LED that lights when card is near */}
-              {i === 2 && <circle cx="52" cy="14" r="3" fill={nearRp2040 || unlockedVis ? "#2DD4BF" : "rgba(237,240,232,0.3)"} />}
-              {i === 4 && <rect x="28" y="20" width="8" height="12" fill={unlockedVis ? "#2DD4BF" : "none"} stroke="rgba(237,240,232,0.5)" strokeWidth="1" />}
-            </svg>
-            <div className="mono-xs mt-2" style={{ fontSize: 10, opacity: (i === 2 && nearRp2040) || unlockedVis ? 1 : 0.5, color: (i === 2 && nearRp2040) ? "#2DD4BF" : "inherit" }}>{s}</div>
-          </div>
-        ))}
+        {STATIONS.map((s, i) => {
+          // station i lights up in sequence as the unlock travels down the chain
+          const isAntenna = i === 1;
+          const isRp2040 = i === 2;
+          const isRelay = i === 3;
+          const isStrike = i === 4;
+          // pipe stages:
+          //  i=0 always neutral
+          //  i=1 (antenna) glows when card is near OR unlocked
+          //  i=2 (rp2040) glows 400ms after unlock (we just use unlockedVis for simplicity)
+          //  i=3 (relay) glows 400ms after unlock
+          //  i=4 (strike) glows after unlock + 700ms (when card starts riding)
+          const active =
+            (isAntenna && (nearRp2040 || unlockedVis)) ||
+            (isRp2040 && readPhase !== "idle") ||
+            (isRelay && unlockedVis) ||
+            (isStrike && unlockedVis);
+          return (
+            <div key={s} className="absolute top-1/2 -translate-y-1/2 text-center" style={{ left: `${5 + i * 21}%` }}>
+              <svg width="64" height="52" viewBox="0 0 64 52" className="mx-auto">
+                <rect x="4" y="8" width="56" height="36" fill="none"
+                  stroke={active ? "#2DD4BF" : "rgba(237,240,232,0.5)"}
+                  strokeWidth={active ? "2" : "1"}
+                  style={{ filter: active ? "drop-shadow(0 0 6px rgba(45,212,191,0.6))" : undefined }} />
+                {/* rfid antenna rings */}
+                {isAntenna && (
+                  <>
+                    <circle cx="32" cy="26" r={9 + (nearRp2040 ? 2 : 0)} fill="none" stroke={active ? "#2DD4BF" : "rgba(237,240,232,0.5)"} strokeWidth="1" style={{ transition: "all 250ms" }}/>
+                    <circle cx="32" cy="26" r={14 + (nearRp2040 ? 3 : 0)} fill="none" stroke={active ? "rgba(45,212,191,0.4)" : "rgba(237,240,232,0.2)"} strokeWidth="1" style={{ transition: "all 250ms" }}/>
+                    <circle cx="32" cy="26" r="2" fill={active ? "#2DD4BF" : "rgba(237,240,232,0.5)"} />
+                  </>
+                )}
+                {/* rp2040 chip with status LED */}
+                {isRp2040 && <circle cx="52" cy="14" r="3" fill={readPhase === "granted" ? "#2DD4BF" : readPhase === "reading" ? "#fbbf24" : "rgba(237,240,232,0.3)"} style={{ transition: "all 200ms" }} />}
+                {/* strike */}
+                {isStrike && <rect x="28" y="20" width="8" height="12" fill={unlockedVis ? "#2DD4BF" : "none"} stroke={active ? "#2DD4BF" : "rgba(237,240,232,0.5)"} strokeWidth="1" />}
+              </svg>
+              <div className="mono-xs mt-2" style={{ fontSize: 10, opacity: active ? 1 : 0.5, color: active ? "#2DD4BF" : "inherit" }}>{s}</div>
+            </div>
+          );
+        })}
 
         {/* draggable card */}
         <div
@@ -145,7 +195,7 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
         {!unlockedVis && (
           <div className="absolute left-1/2 bottom-4 -translate-x-1/2 mono-xs text-center pointer-events-none"
             style={{ color: "var(--color-ink)", background: "#2DD4BF", padding: "6px 14px", letterSpacing: "0.18em", fontSize: 10 }}>
-            TASK — drag the card onto the rp2040 to unlock
+            TASK — drag the card onto the rfid antenna
           </div>
         )}
 
@@ -163,7 +213,7 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
       </div>
 
       <div className="flex justify-between">
-        <div className="mono-xs opacity-50">{unlockedVis ? "door open ✓ — gate open" : nearRp2040 ? "release ▸" : "drag the card onto the rp2040"}</div>
+        <div className="mono-xs opacity-50">{unlockedVis ? "door open ✓ — gate open" : readPhase === "reading" ? "reading ▸" : nearRp2040 ? "release ▸" : "hold the card on the rfid antenna"}</div>
         <div className="mono-xs opacity-50" style={{ color: unlockedVis ? "#2DD4BF" : "inherit" }}>{unlockedVis ? "unlocked" : "locked"}</div>
       </div>
     </div>
