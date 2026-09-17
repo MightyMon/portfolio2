@@ -3,7 +3,7 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import { latestArtifact, onArtifact, stashArtifact, thunk, handoff } from "@/lib/session";
 import type { Artifact } from "@/lib/session";
 
 const STARS = 800;
@@ -122,6 +122,13 @@ export default function Exosky({ progress, commit, onReady }: { progress: number
     if (progress >= 0.7 && !lockedOnce.current) {
       lockedOnce.current = true;
       commit?.(1);
+      thunk();
+      setTimeout(() => handoff(), 220);
+      setJustLocked(true);
+      setTimeout(() => setJustLocked(false), 1200);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try { (navigator as any).vibrate?.([30, 20, 50]); } catch {}
+      }
       stashArtifact({
         kind: "catalogEntry",
         label: `k2-18b · 120pc · ${pcap ? "telescope seated via network route" : "default catalog"}`,
@@ -135,6 +142,7 @@ export default function Exosky({ progress, commit, onReady }: { progress: number
   const [scan, setScan] = useState(progress < 0.3);
   const [acq, setAcq] = useState(progress >= 0.3 && progress < 0.7);
   const [locked, setLocked] = useState(progress >= 0.7);
+  const [justLocked, setJustLocked] = useState(false);
 
   useEffect(() => {
     setScan(progress < 0.3);
@@ -206,12 +214,25 @@ export default function Exosky({ progress, commit, onReady }: { progress: number
         </div>
       </div>
 
+      {/* cinematic lock-in framing */}
+      {justLocked && (
+        <>
+          <div className="absolute top-0 left-0 right-0 bg-black pointer-events-none z-30" style={{ height: 0, animation: "barDown 600ms ease-out forwards" }} />
+          <div className="absolute bottom-0 left-0 right-0 bg-black pointer-events-none z-30" style={{ height: 0, animation: "barUp 600ms ease-out forwards" }} />
+        </>
+      )}
+
       {/* status */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 mono-xs opacity-70">
         {scan && `scanning… ${Math.round((progress / 0.3) * 100)}%`}
         {acq && `acquiring… ${Math.round(((progress - 0.3) / 0.4) * 100)}%` + (logged.length > 0 ? ` · ${logged.length} logged` : "")}
         {locked && "target locked ✓ · k2-18b · 120pc · habitable zone candidate"}
       </div>
+
+      <style>{`
+        @keyframes barDown { 0% { height: 0 } 100% { height: 48px } 40% { height: 48px } 100% { height: 0 } }
+        @keyframes barUp { 0% { height: 0 } 100% { height: 48px } 40% { height: 48px } 100% { height: 0 } }
+      `}</style>
     </div>
   );
 }

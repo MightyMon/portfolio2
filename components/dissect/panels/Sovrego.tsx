@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { stashArtifact } from "@/lib/session";
+import { stashArtifact, blip, handoff } from "@/lib/session";
 
 const STEPS = ["reformulate", "retrieve", "synthesize"];
 
@@ -23,9 +23,16 @@ allow {
 
 export default function Sovrego({ progress, commit, onReady }: { progress: number; commit?: (n: number) => void; onReady?: (r: boolean) => void }) {
   const [compiled, setCompiled] = useState(0);
+  const [burst, setBurst] = useState(false);
+  const [pulse, setPulse] = useState(0);
   useEffect(() => { onReady?.(compiled > 0); }, [compiled, onReady]);
   const [hintVisible, setHintVisible] = useState(true);
   const doCompile = () => {
+    blip(1320, 0.12);
+    setTimeout(() => handoff(), 120);
+    setBurst(true);
+    setPulse((p) => p + 1);
+    setTimeout(() => setBurst(false), 900);
     setCompiled((c) => {
       const next = c + 1;
       commit?.(next);
@@ -40,6 +47,10 @@ export default function Sovrego({ progress, commit, onReady }: { progress: numbe
       return next;
     });
     setHintVisible(false);
+    // haptic on mobile devices with vibration
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try { (navigator as any).vibrate?.(15); } catch {}
+    }
   };
   const stepIdx = Math.min(2, Math.floor(progress * 3));
   const lineLen = Math.min(1, progress * 1.08);
@@ -94,25 +105,54 @@ export default function Sovrego({ progress, commit, onReady }: { progress: numbe
             background: "transparent",
             border: "none",
             cursor: "pointer",
+            transition: "transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
         >
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               width: 12, height: 12, background: "#2DD4BF",
-              boxShadow: compiled > 0
+              boxShadow: burst
+                ? "0 0 60px 8px rgba(45,212,191,1), 0 0 0 0 rgba(45,212,191,0)"
+                : compiled > 0
                 ? "0 0 24px rgba(45,212,191,0.9)"
                 : "0 0 12px rgba(45,212,191,0.6), 0 0 0 10px rgba(45,212,191,0.12)",
+              transform: burst
+                ? `translate(-50%, -50%) scale(1.6)`
+                : `translate(-50%, -50%) scale(${1 + pulse * 0.03})`,
+              transition: "transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 600ms",
             }}
           />
           {/* pulse ring */}
-          {compiled === 0 && (
+          {compiled === 0 && !burst && (
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-bright"
               style={{ width: 40, height: 40, animation: "ping 1.6s cubic-bezier(0,0,0.2,1) infinite" }}
             />
           )}
+          {/* burst ring on compile */}
+          {burst && (
+            <>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-bright"
+                  style={{
+                    width: 24 + i * 16, height: 24 + i * 16,
+                    animation: `burst 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards`,
+                    animationDelay: `${i * 40}ms`,
+                    opacity: 0.7 - i * 0.1,
+                  }}
+                />
+              ))}
+            </>
+          )}
         </button>
+
+        {/* full-screen flash on compile */}
+        {burst && (
+          <div className="pointer-events-none absolute inset-0 z-30" style={{ background: "radial-gradient(circle, rgba(45,212,191,0.18), transparent 65%)", animation: "flash 700ms" }} />
+        )}
 
         {/* floating label near the dot */}
         {compiled === 0 && hintVisible && (
@@ -185,6 +225,15 @@ export default function Sovrego({ progress, commit, onReady }: { progress: numbe
           0% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
           70% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
           100% { transform: translate(-50%,-50%) scale(2.6); opacity: 0; }
+        }
+        @keyframes burst {
+          0% { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
+          100% { transform: translate(-50%,-50%) scale(4); opacity: 0; }
+        }
+        @keyframes flash {
+          0% { opacity: 0; }
+          30% { opacity: 1; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>

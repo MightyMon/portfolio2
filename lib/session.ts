@@ -96,3 +96,45 @@ export function latestArtifact(kind: ArtifactKind): Artifact | undefined {
 export function allArtifacts(): Artifact[] {
   return [...artifacts];
 }
+
+// ── sound — tiny synth for verb moments ─────────────────────────────────
+let actx: AudioContext | null = null;
+function ctx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!actx) {
+    const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return null;
+    actx = new AC();
+  }
+  if (actx && actx.state === "suspended") actx.resume().catch(() => {});
+  return actx;
+}
+
+/** Punchy mono bleep at given freq + decay. `at` offsets the start (for stacking). */
+export function blip(freq = 880, decay = 0.14, at = 0) {
+  const c = ctx();
+  if (!c) return;
+  const t0 = c.currentTime + at;
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(freq, t0);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t0 + decay);
+  g.gain.setValueAtTime(0.06, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+  osc.connect(g).connect(c.destination);
+  osc.start(t0);
+  osc.stop(t0 + decay + 0.02);
+}
+
+/** heavier lock-in thunk (used for dock/lock moments) */
+export function thunk() {
+  blip(220, 0.18, 0);
+  blip(110, 0.22, 0.04);
+}
+
+/** ascending two-note for artifact handoff */
+export function handoff() {
+  blip(660, 0.1, 0);
+  blip(990, 0.12, 0.08);
+}

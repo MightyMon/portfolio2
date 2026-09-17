@@ -3,25 +3,34 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import { latestArtifact, onArtifact, stashArtifact, blip, handoff } from "@/lib/session";
 import type { Artifact } from "@/lib/session";
 
 function gauss(x: number, mu = 0, s = 1, a = 1) { return a * Math.exp(-((x - mu) ** 2) / (2 * s * s)); }
 
-function Scene({ progress }: { progress: number }) {
+function Scene({ progress, exhaleCount }: { progress: number; exhaleCount: number }) {
   const camRef = useRef<THREE.PerspectiveCamera>(null!);
+  const spikeAt = useRef(-1);
   const satellites = useMemo(() => {
     const arr: THREE.Object3D[] = [];
     for (let i = 0; i < 4; i++) { const o = new THREE.Object3D(); o.position.set(i * 1.6 - 2.4, 0, -3); arr.push(o); }
     return arr;
   }, []);
   const scatter = useMemo(() => Array.from({ length: 50 }, (_, i) => ({ x: (Math.random() - 0.5) * 6, y: gauss(Math.random() * 3 - 1.5) + (Math.random() - 0.5) * 0.2, z: -8 })), []);
+  // kick whenever exhale increments
+  useEffect(() => {
+    if (exhaleCount > 0) spikeAt.current = performance.now();
+  }, [exhaleCount]);
   useFrame(({ camera, clock }) => {
-    camera.position.z = 6 + progress * 12;
+    const dt = spikeAt.current > 0 ? (performance.now() - spikeAt.current) / 1000 : 99;
+    // easing 5-second decay
+    const kick = dt < 5 ? Math.pow(Math.max(0, 1 - dt / 5), 2.2) : 0;
+    camera.position.z = 6 + progress * 12 - kick * 1.8;
+    camera.position.y = kick * (Math.sin(dt * 70) * 0.15);
     camera.lookAt(0, 0, -4);
     satellites.forEach((s, i) => { s.position.y = Math.sin(clock.elapsedTime + i) * 0.15; });
   });
-  // gaussian curve
+  // gaussian curve — amplitude spikes on exhale
   const pts = useMemo(() => {
     const arr: [number, number, number][] = [];
     for (let i = 0; i <= 60; i++) { const x = i / 60 * 6 - 3; arr.push([x, gauss(x), 0]); }
@@ -31,11 +40,30 @@ function Scene({ progress }: { progress: number }) {
     const g = new THREE.BufferGeometry().setFromPoints(pts.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
     return g;
   }, [pts]);
+  // dynamic amplitude (scream on exhale)
+  const liveGeo = useRef<THREE.BufferGeometry | null>(null);
+  const liveLine = useRef<THREE.Line | null>(null);
+  useFrame(({ clock }) => {
+    if (!liveLine.current) return;
+    const dt = spikeAt.current > 0 ? (performance.now() - spikeAt.current) / 1000 : 99;
+    const kick = dt < 5 ? Math.pow(Math.max(0, 1 - dt / 5), 1.5) : 0;
+    const amp = 1 + kick * 3.2;
+    if (!liveGeo.current) liveGeo.current = new THREE.BufferGeometry();
+    const livePts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 120; i++) {
+      const x = (i / 120) * 6 - 3;
+      const noise = kick * (Math.sin(x * 12 + clock.elapsedTime * 20) * 0.05 + (Math.random() - 0.5) * 0.04);
+      livePts.push(new THREE.Vector3(x, gauss(x) * amp + noise, 0));
+    }
+    liveLine.current.geometry.setFromPoints(livePts);
+  });
   return (
     <>
-      {/* waveform */}
+      {/* baseline original waveform — faint guide */}
       {/* @ts-expect-error primitive line */}
-      <line geometry={lineGeo}><lineBasicMaterial color="#2DD4BF" linewidth={2} /></line>
+      <line geometry={lineGeo}><lineBasicMaterial color="#1d6a5f" linewidth={1} transparent opacity={0.7} /></line>
+      {/* live spiking waveform */}
+      <line ref={(l: any) => { liveLine.current = l; }}><lineBasicMaterial color="#2DD4BF" linewidth={2} /></line>
       {/* sensors */}
       {satellites.map((o, i) => (
         <mesh key={i} position={o.position}><sphereGeometry args={[0.13, 12, 12]} /><meshBasicMaterial color="#EDF0E8" /></mesh>
@@ -65,6 +93,8 @@ export default function Breathalyzer({ progress, commit, onReady }: { progress: 
   }, []);
 
   const doExhale = () => {
+    blip(740 + Math.random() * 400, 0.16);
+    if (exhales === 0) setTimeout(() => handoff(), 100);
     setExhales((c) => {
       const n = c + 1;
       commit?.(n);
@@ -94,7 +124,7 @@ export default function Breathalyzer({ progress, commit, onReady }: { progress: 
         )}
       </div>
       <Canvas camera={{ position: [0, 0, 6], fov: 55 }} style={{ position: "absolute", inset: 0 }}>
-        <Scene progress={progress} />
+        <Scene progress={progress} exhaleCount={exhales} />
       </Canvas>
       {/* task banner */}
       {exhales === 0 && (

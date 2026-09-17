@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import { latestArtifact, onArtifact, stashArtifact, thunk, handoff } from "@/lib/session";
 import type { Artifact } from "@/lib/session";
 
 const STATIONS = ["card", "rfid antenna", "rp2040", "relay", "strike"];
@@ -35,6 +35,13 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
       if (idx === STATIONS.length - 1 && !scansDone.current) {
         scansDone.current = true;
         commit?.(1);
+        thunk();
+        setTimeout(() => handoff(), 180);
+        setFlash(true);
+        setTimeout(() => setFlash(false), 700);
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try { (navigator as any).vibrate?.([20, 30, 40]); } catch {}
+        }
         stashArtifact({
           kind: "doorOpen",
           label: `door 03 opened · sig ${signature ? "verified" : "missing"}`,
@@ -50,7 +57,13 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
     if (!cardRef.current) return;
     const parentW = cardRef.current.parentElement?.clientWidth ?? 1200;
     gsap.set(cardRef.current, { x: -60 + next * (parentW + 120) });
+    // bump on tap
+    if (cardRef.current) {
+      gsap.fromTo(cardRef.current, { scale: 1.1 }, { scale: 1, duration: 0.25, ease: "back.out(3)" });
+    }
   };
+
+  const [flash, setFlash] = useState(false);
 
   return (
     <div className="relative flex h-full w-full flex-col justify-between p-12">
@@ -97,6 +110,13 @@ export default function AccessControl({ progress, commit, onReady }: { progress:
         <div className="display-c absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5.5rem)", opacity: 0.12 }}>
           access control
         </div>
+
+        {/* door-open flash */}
+        {flash && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 pointer-events-none z-30"
+            style={{ background: "radial-gradient(circle at right, rgba(45,212,191,0.85), transparent 60%)", animation: "flash 700ms" }} />
+        )}
+        <style>{`@keyframes flash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }`}</style>
       </div>
 
       <div className="flex justify-between">

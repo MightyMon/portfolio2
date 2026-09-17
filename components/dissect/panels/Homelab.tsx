@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { latestArtifact, onArtifact, stashArtifact } from "@/lib/session";
+import { latestArtifact, onArtifact, stashArtifact, blip, thunk, handoff } from "@/lib/session";
 import type { Artifact } from "@/lib/session";
 
 type Tray = { id: string; label: string; spec: string; service: string };
@@ -63,12 +63,29 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
       openSet.current.add(id);
       setOpenCount(openSet.current.size);
       commit?.(openSet.current.size);
+      blip(880 + openSet.current.size * 110, 0.1);
+      if (openSet.current.size === 4) {
+        setTimeout(() => thunk(), 80);
+        setTimeout(() => handoff(), 350);
+      }
+      // spring snap + haptic
+      gsap.fromTo(trayRefs.current[id]!, { x: x + 12 }, { x: 160, duration: 0.4, ease: "elastic.out(1, 0.4)" });
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try { (navigator as any).vibrate?.(12); } catch {}
+      }
+      const timer = setTimeout(() => {
+        // blink the LED on the newly docked tray
+        setLedBlink((m) => ({ ...m, [id]: true }));
+        setTimeout(() => setLedBlink((m) => ({ ...m, [id]: false })), 800);
+      }, 350);
+      return () => clearTimeout(timer);
     }
     if (!open) openSet.current.delete(id);
     gsap.to(trayRefs.current[id]!, { x: open ? 160 : 0, duration: 0.35, ease: "power4.out" });
     dragState.current = { tray: null, startX: 0, trayStartX: 0 };
     setOpenCount(openSet.current.size);
   };
+  const [ledBlink, setLedBlink] = useState<Record<string, boolean>>({});
 
   return (
     <div className="flex h-full w-full flex-col justify-between p-12 relative">
@@ -86,7 +103,18 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
           {TRAYS.map((t) => (
             <div key={t.id} className="relative mb-3">
               <div className="h-[74px] border border-paper/22 bg-black/20 flex items-center justify-between px-3">
-                <div className="mono-xs">{t.label}</div>
+                <div className="mono-xs flex items-center gap-2">
+                  {/* status LED */}
+                  <div
+                    className="w-2 h-2 rounded-full transition-colors"
+                    style={{
+                      background: ledBlink[t.id] ? "#2DD4BF" : openSet.current.has(t.id) ? "#2DD4BF" : "rgba(237,240,232,0.25)",
+                      boxShadow: openSet.current.has(t.id) ? "0 0 8px rgba(45,212,191,0.9)" : "none",
+                      animation: ledBlink[t.id] ? "ledBlink 100ms steps(2) 4" : undefined,
+                    }}
+                  />
+                  {t.label}
+                </div>
                 <div
                   ref={(el) => { trayRefs.current[t.id] = el; }}
                   onPointerDown={(e) => onDown(e, t.id)}
@@ -128,6 +156,10 @@ export default function Homelab({ progress, commit, onReady }: { progress: numbe
           TASK — drag all 4 handles right to dock all trays ({openCount}/4)
         </div>
       )}
+
+      <style>{`
+        @keyframes ledBlink { 50% { opacity: 0.3 } }
+      `}</style>
     </div>
   );
 }
