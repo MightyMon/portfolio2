@@ -210,10 +210,42 @@ html, body {
   h1.display-c { font-size: clamp(2.8rem, 16vw, 4.5rem) !important; }
 }
 
+/* section — "rooms": each section gets its own container with hairline frame */
+.stage {
+  position: relative;
+  min-height: 100vh;
+  padding: 80px 24px 40px;
+  border-top: 1px solid rgba(237, 240, 232, 0.08);
+}
+.stage::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 72px;
+  bottom: 32px;
+  border-left: 1px solid rgba(237, 240, 232, 0.05);
+  border-right: 1px solid rgba(237, 240, 232, 0.05);
+  pointer-events: none;
+}
+
+/* make every section cut in (fade+clip) when it enters the viewport */
+@keyframes sectionIn {
+  from { opacity: 0; clip-path: inset(6% 4% 6% 4%); transform: scale(0.99); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0);   transform: scale(1); }
+}
+
+.stage {
+  /* Web Animations API fills this at runtime */
+  will-change: opacity, transform;
+}
+
 /* mobile vs desktop route */
 @media (max-width: 767px) {
   .desktop-only { display: none !important; }
   .mobile-only { display: block !important; }
+  /* sections get breathing room so guide chip doesn't overlap content */
+  .stage { padding: 76px 16px 80px; }
 }
 @media (min-width: 768px) {
   .desktop-only { display: block !important; }

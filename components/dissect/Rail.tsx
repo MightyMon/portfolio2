@@ -148,11 +148,21 @@ export default function Rail({ panels }: { panels: PanelSpec[] }) {
                   </div>
                 </div>
               )}
-              <p.component
-                progress={isActive ? panelProgress : 0}
-                commit={(n) => commit(String(p.id), n)}
-                onReady={(r) => setReady(String(p.id), r)}
-              />
+              {/* only mount the actual panel (with its WebGL) when it's active.
+                  Otherwise render a static "ghost" — panel name centered and dim. */}
+              {i === panelIndex ? (
+                <p.component
+                  progress={panelProgress}
+                  commit={(n) => commit(String(p.id), n)}
+                  onReady={(r) => setReady(String(p.id), r)}
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col justify-between p-12 opacity-40">
+                  <div className="stage-label"><span>T-{String(i + 1).padStart(3, "0")}</span><span>/</span><span>{p.id}</span><span className="hr" /><span className="opacity-50">{p.axis}</span></div>
+                  <div className="display-c pointer-events-none" style={{ fontStyle: "italic", fontWeight: 700, fontSize: "clamp(2.4rem, 6vw, 5rem)", opacity: 0.3 }}>{p.name}</div>
+                  <div />
+                </div>
+              )}
             </div>
           );
         })}

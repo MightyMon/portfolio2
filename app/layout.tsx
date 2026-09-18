@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import GlobalChrome from "@/components/GlobalChrome";
 
 export const metadata: Metadata = {
   title: "mighty. — goutham o shibu · devsecops & cybersecurity",
@@ -18,7 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <GlobalChrome />
+      </body>
     </html>
   );
 }
